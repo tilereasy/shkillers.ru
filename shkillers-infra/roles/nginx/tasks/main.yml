@@ -96,14 +96,33 @@
 
 - name: Verify site locally on VPS
   ansible.builtin.uri:
-    url: http://127.0.0.1/
+    url: >-
+      {{
+        (nginx_tls_active | default(false))
+        | ternary('https://127.0.0.1/', 'http://127.0.0.1/')
+      }}
+    headers:
+      Host: "{{ nginx_server_names | first }}"
     status_code: 200
     return_content: false
+    validate_certs: "{{ not (nginx_tls_active | default(false)) }}"
   when: not ansible_check_mode
 
 - name: Verify site from Ansible control node
   ansible.builtin.uri:
-    url: "http://{{ ansible_host }}/"
+    url: >-
+      {{
+        (nginx_tls_active | default(false))
+        | ternary(
+            'https://' ~ (nginx_server_names | first) ~ '/',
+            'http://' ~ ansible_host ~ '/'
+          )
+      }}
+    headers: >-
+      {{
+        (nginx_tls_active | default(false))
+        | ternary({}, {'Host': nginx_server_names | first})
+      }}
     status_code: 200
     return_content: false
   delegate_to: localhost

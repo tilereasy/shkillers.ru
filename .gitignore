@@ -1,0 +1,20 @@
+shkillers-infra/inventory/production.yml
+
+# Ansible Vault password
+.vault-pass
+.vault-password
+vault-password*
+
+# Environment files
+.env
+.env.*
+
+# Private keys
+*.key
+*.pem
+
+# Temporary Ansible files
+*.retry
+
+# vscode
+.vscode/

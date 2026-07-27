@@ -7,6 +7,33 @@ server {
 
     server_name {{ nginx_server_names | join(' ') }};
 
+{% if nginx_tls_active | default(false) %}
+    server_tokens off;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root {{ nginx_acme_webroot }};
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl{% if nginx_default_server %} default_server{% endif %};
+
+{% if nginx_listen_ipv6 %}
+    listen [::]:443 ssl{% if nginx_default_server %} default_server{% endif %};
+{% endif %}
+
+    server_name {{ nginx_server_names | join(' ') }};
+
+    ssl_certificate {{ nginx_tls_certificate_path }};
+    ssl_certificate_key {{ nginx_tls_certificate_key_path }};
+
+{% endif %}
     root {{ nginx_site_root }};
     index {{ nginx_index_files | join(' ') }};
 
