@@ -13,3 +13,5 @@ common_packages:
   - sudo
   - unzip
   - nano
+  - systemd-timesyncd
+  - unattended-upgrades
