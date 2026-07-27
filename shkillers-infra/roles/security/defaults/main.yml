@@ -18,3 +18,7 @@ security_ssh_client_alive_interval: 300
 security_ssh_client_alive_count_max: 2
 
 security_ssh_allowed_users: []
+
+security_firewall_manage_forward_chain: false
+security_firewall_additional_tcp_ports: []
+security_firewall_udp_ports: []

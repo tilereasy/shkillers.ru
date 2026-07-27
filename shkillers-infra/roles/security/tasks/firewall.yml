@@ -1,0 +1,94 @@
+- name: Validate firewall collection variables
+  ansible.builtin.assert:
+    that:
+      - security_firewall_additional_tcp_ports is sequence
+      - security_firewall_additional_tcp_ports is not string
+      - security_firewall_udp_ports is sequence
+      - security_firewall_udp_ports is not string
+      - security_firewall_manage_forward_chain is boolean
+    success_msg: "Firewall collection variables are valid"
+    fail_msg: "Firewall collection variables are invalid"
+
+- name: Validate allowed TCP ports
+  ansible.builtin.assert:
+    that:
+      - item | int >= 1
+      - item | int <= 65535
+    quiet: true
+    fail_msg: "Invalid TCP port: {{ item }}"
+  loop: >-
+    {{
+      [security_ssh_port]
+      + security_firewall_additional_tcp_ports
+    }}
+  loop_control:
+    label: "TCP/{{ item }}"
+
+- name: Validate allowed UDP ports
+  ansible.builtin.assert:
+    that:
+      - item | int >= 1
+      - item | int <= 65535
+    quiet: true
+    fail_msg: "Invalid UDP port: {{ item }}"
+  loop: "{{ security_firewall_udp_ports }}"
+  loop_control:
+    label: "UDP/{{ item }}"
+
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+
+- name: Deploy nftables configuration
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "/usr/sbin/nft --check --file %s"
+  notify: Reload nftables
+
+- name: Enable and start nftables
+  ansible.builtin.systemd_service:
+    name: nftables.service
+    enabled: true
+    state: started
+
+- name: Apply pending nftables handler
+  ansible.builtin.meta: flush_handlers
+  when: not ansible_check_mode
+
+- name: Reset SSH connection after firewall reload
+  ansible.builtin.meta: reset_connection
+  when: not ansible_check_mode
+
+- name: Verify SSH connectivity through firewall
+  ansible.builtin.wait_for_connection:
+    timeout: 30
+    sleep: 2
+  when: not ansible_check_mode
+
+- name: Read active nftables ruleset
+  ansible.builtin.command:
+    cmd: /usr/sbin/nft --numeric list ruleset
+  register: security_nftables_ruleset
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: Verify managed nftables table is active
+  ansible.builtin.assert:
+    that:
+      - >-
+        'table inet ansible_filter'
+        in security_nftables_ruleset.stdout
+      - >-
+        'hook input'
+        in security_nftables_ruleset.stdout
+      - >-
+        'policy drop'
+        in security_nftables_ruleset.stdout
+    success_msg: "The managed nftables ruleset is active"
+    fail_msg: "The managed nftables ruleset is not active"
+  when: not ansible_check_mode

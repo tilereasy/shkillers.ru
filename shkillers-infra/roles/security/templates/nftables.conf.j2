@@ -1,0 +1,52 @@
+#!/usr/sbin/nft -f
+
+{% set allowed_tcp_ports = (
+  [security_ssh_port] + security_firewall_additional_tcp_ports
+) | unique | sort %}
+
+{% set allowed_udp_ports = (
+  security_firewall_udp_ports
+) | unique | sort %}
+
+destroy table inet ansible_filter
+
+table inet ansible_filter {
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        ct state invalid counter drop
+
+        ct state { established, related } counter accept
+
+        iifname "lo" counter accept
+
+        ip protocol icmp counter accept
+        ip6 nexthdr ipv6-icmp counter accept
+
+        meta nfproto ipv4 udp sport 67 udp dport 68 counter accept
+        meta nfproto ipv6 udp sport 547 udp dport 546 counter accept
+
+        tcp dport {
+            {{ allowed_tcp_ports | join(', ') }}
+        } ct state new counter accept
+
+{% if allowed_udp_ports | length > 0 %}
+        # Public UDP services.
+        udp dport {
+            {{ allowed_udp_ports | join(', ') }}
+        } ct state new counter accept
+{% endif %}
+
+        counter drop
+    }
+
+{% if security_firewall_manage_forward_chain %}
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+    }
+{% endif %}
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+    }
+}
