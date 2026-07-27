@@ -1,0 +1,7 @@
+all:
+  children:
+    webservers:
+      hosts:
+        shkillers:
+          ansible_host: <IP_ADDRESS>
+          ansible_user: <USER>
