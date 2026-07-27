@@ -1,0 +1,15 @@
+server_hostname: web-01
+server_timezone: Etc/UTC
+
+common_packages:
+  - acl
+  - ca-certificates
+  - curl
+  - git
+  - htop
+  - jq
+  - python3-apt
+  - rsync
+  - sudo
+  - unzip
+  - nano
