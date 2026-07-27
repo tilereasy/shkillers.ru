@@ -18,6 +18,8 @@
       - nginx_index_files | length > 0
       - nginx_listen_ipv6 is boolean
       - nginx_default_server is boolean
+      - nginx_acme_webroot is string
+      - nginx_acme_webroot.startswith('/')
     success_msg: "Nginx role variables are valid"
     fail_msg: "Nginx role variables are invalid"
 
@@ -81,37 +83,16 @@
     mode: "0644"
     directory_mode: "0755"
 
-- name: Deploy Nginx virtual host
-  ansible.builtin.template:
-    src: site.conf.j2
-    dest: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+- name: Create ACME challenge directory
+  ansible.builtin.file:
+    path: "{{ nginx_acme_webroot }}/.well-known/acme-challenge"
+    state: directory
     owner: root
-    group: root
-    mode: "0644"
-  notify: Reload nginx
+    group: www-data
+    mode: "0755"
 
-- name: Enable Nginx virtual host
-  ansible.builtin.file:
-    src: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
-    dest: "/etc/nginx/sites-enabled/{{ nginx_site_name }}.conf"
-    state: link
-  notify: Reload nginx
-
-- name: Disable default Nginx virtual host
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  notify: Reload nginx
-
-- name: Validate complete Nginx configuration
-  ansible.builtin.command:
-    cmd: /usr/sbin/nginx -t
-  register: nginx_config_test
-  changed_when: false
-
-- name: Apply pending Nginx handler
-  ansible.builtin.meta: flush_handlers
-  when: not ansible_check_mode
+- name: Configure Nginx virtual_host
+  ansible.builtin.import_tasks: vhost.yml
 
 - name: Verify site locally on VPS
   ansible.builtin.uri:

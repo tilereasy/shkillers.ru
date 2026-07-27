@@ -1,0 +1,122 @@
+- name: Validate TLS role variables
+  ansible.builtin.assert:
+    that:
+      - tls_domains is sequence
+      - tls_domains is not string
+      - tls_domains | length > 0
+      - tls_email is string
+      - tls_email | length > 3
+      - tls_certificate_name is string
+      - tls_certificate_name | length > 0
+      - tls_webroot is string
+      - tls_webroot.startswith('/')
+    success_msg: "TLS role variables are valid"
+    fail_msg: "TLS role variables are invalid"
+
+- name: Install Certbot
+  ansible.builtin.apt:
+    name: certbot
+    state: present
+
+- name: Create ACME challenge directory
+  ansible.builtin.file:
+    path: "{{ tls_webroot }}/.well-known/acme-challenge"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0755"
+
+- name: Deploy ACME connectivity test file
+  ansible.builtin.copy:
+    dest: "{{ tls_webroot }}/.well-known/acme-challenge/ansible-test"
+    content: "ansible-acme-ok\n"
+    owner: root
+    group: www-data
+    mode: "0644"
+
+- name: Verify ACME path from control node
+  ansible.builtin.uri:
+    url: >-
+      http://{{ ansible_host
+      }}/.well-known/acme-challenge/ansible-test
+    headers:
+      Host: "{{ tls_domains | first }}"
+    return_content: true
+    status_code: 200
+  delegate_to: localhost
+  become: false
+  register: tls_acme_test
+  failed_when:
+    - tls_acme_test.status != 200
+      or tls_acme_test.content | trim != "ansible-acme-ok"
+
+- name: Verify ACME path through public DNS
+  ansible.builtin.uri:
+    url: >-
+      http://{{ tls_domains | first
+      }}/.well-known/acme-challenge/ansible-test
+    return_content: true
+    status_code: 200
+  delegate_to: localhost
+  become: false
+  register: tls_acme_dns_test
+  failed_when:
+    - tls_acme_dns_test.status != 200
+      or tls_acme_dns_test.content | trim != "ansible-acme-ok"
+- name: Obtain or retain Let's Encrypt certificate
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/certbot
+      - certonly
+      - --webroot
+      - --webroot-path
+      - "{{ tls_webroot }}"
+      - --non-interactive
+      - --agree-tos
+      - --email
+      - "{{ tls_email }}"
+      - --cert-name
+      - "{{ tls_certificate_name }}"
+      - --domains
+      - "{{ tls_domains | join(',') }}"
+      - --preferred-challenges
+      - http
+      - --keep-until-expiring
+  register: tls_certbot_result
+  changed_when: >-
+    'Successfully received certificate'
+    in (tls_certbot_result.stdout ~ tls_certbot_result.stderr)
+  when: not ansible_check_mode
+
+- name: Install Nginx certificate renewal hook
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      set -eu
+
+      /usr/sbin/nginx -t
+      /usr/bin/systemctl reload nginx.service
+
+- name: Enable automatic certificate renewal
+  ansible.builtin.systemd_service:
+    name: certbot.timer
+    enabled: true
+    state: started
+
+- name: Inspect issued certificate
+  ansible.builtin.stat:
+    path: >-
+      /etc/letsencrypt/live/{{ tls_certificate_name }}/fullchain.pem
+  register: tls_issued_certificate
+  when: not ansible_check_mode
+
+- name: Verify certificate was issued
+  ansible.builtin.assert:
+    that:
+      - tls_issued_certificate.stat.exists
+    fail_msg: "Let's Encrypt certificate was not created"
+  when: not ansible_check_mode

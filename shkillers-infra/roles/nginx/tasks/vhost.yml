@@ -1,0 +1,52 @@
+- name: Inspect TLS certificate
+  ansible.builtin.stat:
+    path: "{{ nginx_tls_certificate_path }}"
+  register: nginx_tls_certificate_file
+  when: nginx_tls_enabled
+
+- name: Inspect TLS private key
+  ansible.builtin.stat:
+    path: "{{ nginx_tls_certificate_key_path }}"
+  register: nginx_tls_private_key_file
+  when: nginx_tls_enabled
+
+- name: Determine whether TLS can be activated
+  ansible.builtin.set_fact:
+    nginx_tls_active: >-
+      {{
+        nginx_tls_enabled
+        and (nginx_tls_certificate_file.stat.exists | default(false))
+        and (nginx_tls_private_key_file.stat.exists | default(false))
+      }}
+
+- name: Deploy Nginx virtual host
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable Nginx virtual host
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_site_name }}.conf"
+    state: link
+  notify: Reload nginx
+
+- name: Disable default Nginx virtual host
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Validate complete Nginx configuration
+  ansible.builtin.command:
+    cmd: /usr/sbin/nginx -t
+  register: nginx_config_test
+  changed_when: false
+
+- name: Apply pending Nginx handler
+  ansible.builtin.meta: flush_handlers
+  when: not ansible_check_mode

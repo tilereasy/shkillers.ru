@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for tls
+tls_domains: []
+tls_email: ""
+tls_certificate_name: "{{ tls_domains | first }}"
+tls_webroot: /var/www/letsencrypt

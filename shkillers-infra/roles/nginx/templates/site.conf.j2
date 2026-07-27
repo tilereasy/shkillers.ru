@@ -20,6 +20,12 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    location ^~ /.well-known/acme-challenge/ {
+        root {{ nginx_acme_webroot }};
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
     location ~ /\.(?!well-known/) {
         deny all;
     }

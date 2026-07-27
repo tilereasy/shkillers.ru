@@ -11,7 +11,19 @@
     - role: security
       tags:
         - security
-        
+
     - role: nginx
       tags:
         - nginx
+    - role: tls
+      tags:
+        - tls
+  
+  post_tasks:
+    - name: Refresh Nginx virtual host after certificate issuance
+      ansible.builtin.include_role:
+        name: nginx
+        tasks_from: vhost.yml
+      tags:
+        - nginx
+        - tls

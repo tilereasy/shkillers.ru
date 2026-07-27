@@ -2,7 +2,23 @@ common_hostname: web-01
 nginx_site_source_dir: "{{ inventory_dir }}/../../shkillers-site"
 
 nginx_server_names:
-  - "_"
+  - shkillers.ru
+  - www.shkillers.ru
+
+nginx_tls_enabled: true
+nginx_tls_certificate_path: /etc/letsencrypt/live/shkillers.ru/fullchain.pem
+nginx_tls_certificate_key_path: /etc/letsencrypt/live/shkillers.ru/privkey.pem
+
+tls_domains:
+  - shkillers.ru
+  - www.shkillers.ru
+
+tls_certificate_name: shkillers.ru
+tls_email: "shkillers@yandex.com"
 
 security_firewall_additional_tcp_ports:
   - 80
+  - 443
+
+tls_webroot: "/var/www/letsencrypt"
+nginx_acme_webroot: "/var/www/letsencrypt"

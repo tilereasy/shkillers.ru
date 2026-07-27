@@ -16,3 +16,9 @@ nginx_index_files:
 
 nginx_listen_ipv6: true
 nginx_default_server: true
+
+nginx_acme_webroot: /var/www/letsencrypt
+
+nginx_tls_enabled: false
+nginx_tls_certificate_path: ""
+nginx_tls_certificate_key_path: ""
