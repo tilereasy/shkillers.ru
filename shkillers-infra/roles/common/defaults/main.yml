@@ -1,0 +1,24 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for common
+
+common_timezone: Etc/UTC
+
+common_packages:
+  - acl
+  - ca-certificates
+  - curl
+  - git
+  - htop
+  - jq
+  - python3-apt
+  - rsync
+  - sudo
+  - unzip
+  - nano
+  - systemd-timesyncd
+  - unattended-upgrades
+
+common_extra_packages: []
+
+common_hostname: shkillers
