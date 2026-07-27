@@ -1,3 +1,130 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for nginx
+- name: Validate Nginx role variables
+  ansible.builtin.assert:
+    that:
+      - nginx_site_name is string
+      - nginx_site_name is match('^[a-z0-9][a-z0-9-]*$')
+      - nginx_site_root is string
+      - nginx_site_root.startswith('/')
+      - nginx_site_source_dir is string
+      - nginx_site_source_dir | length > 0
+      - nginx_server_names is sequence
+      - nginx_server_names is not string
+      - nginx_server_names | length > 0
+      - nginx_index_files is sequence
+      - nginx_index_files is not string
+      - nginx_index_files | length > 0
+      - nginx_listen_ipv6 is boolean
+      - nginx_default_server is boolean
+    success_msg: "Nginx role variables are valid"
+    fail_msg: "Nginx role variables are invalid"
+
+- name: Inspect local static site directory
+  ansible.builtin.stat:
+    path: "{{ nginx_site_source_dir }}"
+  delegate_to: localhost
+  become: false
+  register: nginx_local_site_directory
+
+- name: Verify local static site directory
+  ansible.builtin.assert:
+    that:
+      - nginx_local_site_directory.stat.exists
+      - nginx_local_site_directory.stat.isdir
+    fail_msg: >-
+      Static site directory does not exist:
+      {{ nginx_site_source_dir }}
+
+- name: Inspect local index file
+  ansible.builtin.stat:
+    path: "{{ nginx_site_source_dir }}/index.html"
+  delegate_to: localhost
+  become: false
+  register: nginx_local_index_file
+
+- name: Verify local index file
+  ansible.builtin.assert:
+    that:
+      - nginx_local_index_file.stat.exists
+      - nginx_local_index_file.stat.isreg
+    fail_msg: >-
+      Static site must contain:
+      {{ nginx_site_source_dir }}/index.html
+
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Enable and start Nginx
+  ansible.builtin.systemd_service:
+    name: nginx.service
+    enabled: true
+    state: started
+
+- name: Create site document root
+  ansible.builtin.file:
+    path: "{{ nginx_site_root }}"
+    state: directory
+    owner: root
+    group: www-data
+    mode: "0755"
+
+- name: Deploy static site
+  ansible.builtin.copy:
+    src: "{{ nginx_site_source_dir }}/"
+    dest: "{{ nginx_site_root }}/"
+    owner: root
+    group: www-data
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Deploy Nginx virtual host
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable Nginx virtual host
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ nginx_site_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ nginx_site_name }}.conf"
+    state: link
+  notify: Reload nginx
+
+- name: Disable default Nginx virtual host
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Validate complete Nginx configuration
+  ansible.builtin.command:
+    cmd: /usr/sbin/nginx -t
+  register: nginx_config_test
+  changed_when: false
+
+- name: Apply pending Nginx handler
+  ansible.builtin.meta: flush_handlers
+  when: not ansible_check_mode
+
+- name: Verify site locally on VPS
+  ansible.builtin.uri:
+    url: http://127.0.0.1/
+    status_code: 200
+    return_content: false
+  when: not ansible_check_mode
+
+- name: Verify site from Ansible control node
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/"
+    status_code: 200
+    return_content: false
+  delegate_to: localhost
+  become: false
+  when: not ansible_check_mode

@@ -1,1 +1,8 @@
-server_hostname: web-01
+common_hostname: web-01
+nginx_site_source_dir: "{{ inventory_dir }}/../../shkillers-site"
+
+nginx_server_names:
+  - "_"
+
+security_firewall_additional_tcp_ports:
+  - 80

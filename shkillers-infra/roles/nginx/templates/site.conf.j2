@@ -1,0 +1,26 @@
+server {
+    listen 80{% if nginx_default_server %} default_server{% endif %};
+
+{% if nginx_listen_ipv6 %}
+    listen [::]:80{% if nginx_default_server %} default_server{% endif %};
+{% endif %}
+
+    server_name {{ nginx_server_names | join(' ') }};
+
+    root {{ nginx_site_root }};
+    index {{ nginx_index_files | join(' ') }};
+
+    charset utf-8;
+    server_tokens off;
+
+    access_log /var/log/nginx/{{ nginx_site_name }}.access.log;
+    error_log /var/log/nginx/{{ nginx_site_name }}.error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ /\.(?!well-known/) {
+        deny all;
+    }
+}

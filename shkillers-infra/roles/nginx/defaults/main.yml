@@ -1,3 +1,18 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for nginx
+
+nginx_site_name: shkillers
+nginx_site_root: "/var/www/{{ nginx_site_name }}"
+
+# Обязательное значение: путь на control node.
+nginx_site_source_dir: ""
+
+nginx_server_names:
+  - "_"
+
+nginx_index_files:
+  - index.html
+
+nginx_listen_ipv6: true
+nginx_default_server: true

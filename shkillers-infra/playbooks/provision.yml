@@ -11,3 +11,7 @@
     - role: security
       tags:
         - security
+        
+    - role: nginx
+      tags:
+        - nginx
