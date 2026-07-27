@@ -1,0 +1,40 @@
+- name : Inspect web servers
+  hosts: webservers
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Verify supported os
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.distribution == "Debian"
+          - ansible_facts.distribution_major_version | int == 13
+        success_msg: "Supported os detected: Debian 13!"
+        fail_msg: "Unsupported os detected. Playbook supports only Debian 13!"
+    - name: Display selected system facts
+      ansible.builtin.debug:
+        msg:
+          hostname: "{{ ansible_facts.hostname }}"
+          distribution: >-
+            {{ ansible_facts.distribution }}
+            {{ ansible_facts.distribution_version }}
+          architecture: "{{ ansible_facts.architecture }}"
+          kernel: "{{ ansible_facts.kernel }}"
+          virtual_cpus: "{{ ansible_facts.processor_vcpus }}"
+          memory_mb: "{{ ansible_facts.memtotal_mb }}"
+          swap_mb: "{{ ansible_facts.swaptotal_mb }}"
+    - name: Check privelege escalation
+      become: true
+      ansible.builtin.command:
+        cmd: id -u
+      register: root_uid
+      changed_when: false
+      check_mode: false
+    
+    - name: Verify privelege escalation result
+      ansible.builtin.assert:
+        that:
+          - root_uid.stdout == "0"
+        success_msg: "Privelege escalation works correctrly"
+        fail_msg: "Ansible failed to become root"
+      
