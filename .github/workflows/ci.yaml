@@ -1,6 +1,5 @@
 name: Check blog validity
 
-pull_request:
 push:
   branches:
     - master
