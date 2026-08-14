@@ -84,6 +84,21 @@ jobs:
           printf '%s' '${{ secrets.ANSIBLE_VAULT_PASSWORD }}' > .vault-pass
           chmod 600 .vault-pass
 
+      - name: Show runner IP
+        run: curl -4 https://api.ipify.org
+
+      - name: Debug SSH connection
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -vvv \
+          -o BatchMode=yes \
+          -o ConnectTimeout=15 \
+          -i ~/.ssh/id_ed25519 \
+          "$DEPLOY_USER@$DEPLOY_HOST" \
+          true
+
       - name: Deploy website
         working-directory: ./shkillers-infra
         run: |
