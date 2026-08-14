@@ -91,4 +91,4 @@ jobs:
           -i inventory/production.yml \
           playbooks/provision.yml \
           --tags nginx \
-          --vault-password-file ./vault-pass
+          --vault-password-file ./.vault-pass
