@@ -88,5 +88,6 @@ jobs:
         run: |
           ansible-playbook \
           -i inventory/production.yml \
-          playbooks/deploy-site.yml \
+          playbooks/provision.yml \
+          --tags nginx \
           --vault-password-file ../.vault-pass
