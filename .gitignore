@@ -18,3 +18,9 @@ vault-password*
 
 # vscode
 .vscode/
+
+# node.js modules
+node_modules/
+
+# directory for temporary garbage
+misc/

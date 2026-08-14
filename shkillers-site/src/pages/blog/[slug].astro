@@ -1,0 +1,51 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("posts", ({ data }) => !data.draft);
+
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+---
+
+<BaseLayout
+  title={`${post.data.title} — shkillers.ru`}
+  description={post.data.description}
+  activePath="blog"
+>
+  <main>
+    <article>
+      <header class="post-header">
+        <div class="post-shell">
+          <div class="meta-line">
+            {post.data.pinned && <strong>PINNED</strong>}
+            <span><time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time></span>
+          </div>
+          <h1>{post.data.title}</h1>
+          <p class="post-description">{post.data.description}</p>
+          <ul class="tag-list" aria-label="Теги">
+            {post.data.tags.map((tag) => <li>#{tag}</li>)}
+          </ul>
+        </div>
+      </header>
+
+      <div class="post-shell post-content">
+        <Content />
+      </div>
+    </article>
+  </main>
+</BaseLayout>

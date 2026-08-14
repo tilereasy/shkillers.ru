@@ -1,5 +1,5 @@
 common_hostname: web-01
-nginx_site_source_dir: "{{ inventory_dir }}/../../shkillers-site"
+nginx_site_source_dir: "{{ inventory_dir }}/../../shkillers-site/dist"
 
 nginx_server_names:
   - shkillers.ru

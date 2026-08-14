@@ -1,0 +1,122 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+
+const posts = (await getCollection("posts", ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+
+const pinnedPost = posts.find((post) => post.data.pinned);
+const freshPosts = posts.slice(0, 4);
+const topicCounts = Array.from(
+  posts
+    .flatMap((post) => post.data.tags)
+    .reduce((counts, tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1), new Map<string, number>()),
+).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ru"));
+---
+
+<BaseLayout activePath="home">
+  <main>
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <h1>Личный сайт обо всем, что я посчитаю нужным.</h1>
+          <p class="stack">Astro · Markdown/MDX</p>
+        </div>
+
+        <aside class="contacts" aria-label="Контакты">
+          <p class="section-kicker">// контакты</p>
+          <div class="link-row">
+            <a href="https://github.com/tilereasy" rel="noreferrer">github ↗</a>
+            <a href="https://t.me/tilereasy" rel="noreferrer">telegram ↗</a>
+            <a href="mailto:mail@gletnev.ru">mail ↗</a>
+          </div>
+          <p class="contact-note">Сайт обновляется нерегулярно, зато только тогда когда я сам захочу.</p>
+        </aside>
+      </div>
+    </section>
+
+    {pinnedPost && (
+      <section class="pinned-section">
+        <div class="shell">
+          <article class="pinned-card">
+            <div class="pinned-copy">
+              <div class="meta-line">
+                <strong>PINNED</strong>
+                <span>{formatDate(pinnedPost.data.date)}</span>
+              </div>
+              <h2>{pinnedPost.data.title}</h2>
+              <p>{pinnedPost.data.description}</p>
+              <a class="read-more" href={`/blog/${pinnedPost.id}/`}>читать ↗</a>
+            </div>
+
+            <div class="terminal" aria-label="Теги закрепленного поста">
+              <p><span>root@shkillers:~$</span> cat ./tags</p>
+              <ul>
+                {pinnedPost.data.tags.map((tag) => <li>{tag}</li>)}
+              </ul>
+              <small>{pinnedPost.data.tags.length} entries found</small>
+            </div>
+          </article>
+        </div>
+      </section>
+    )}
+
+    <section class="content-section">
+      <div class="shell content-grid">
+        <section class="fresh" aria-labelledby="fresh-title">
+          <div class="section-head">
+            <h2 id="fresh-title">// свеже</h2>
+            <a href="/blog/">все записи ↗</a>
+          </div>
+
+          <div class="post-list">
+            {freshPosts.map((post) => (
+              <article class="post-item">
+                <div class="post-meta">
+                  <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                  <span>{post.data.tags[0]}</span>
+                </div>
+                <div>
+                  <h3><a href={`/blog/${post.id}/`}>{post.data.title}</a></h3>
+                  <p>{post.data.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside class="side-panel" aria-label="Дополнительная информация">
+          <section class="now">
+            <h2>// сейчас</h2>
+            <p>Прямо сейчас я скорее всего НИЧЕГО не делаю.</p>
+          </section>
+
+          <section class="topics">
+            <h2>// темы</h2>
+            <ul>
+              {topicCounts.map(([topic, count]) => (
+                <li>
+                  <a href={`/blog/?tag=${topic}`}>{topic}</a>
+                  <span>{count}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section class="mini-terminal">
+            <p><span>root@shkillers:~$</span> whoami</p>
+            <p>Skebob</p>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

@@ -1,0 +1,59 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  activePath?: "home" | "blog";
+}
+
+const {
+  title = "shkillers.ru",
+  description = "Добро пожаловать на мой личный сайт!",
+  activePath = "home",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell header-grid">
+        <a class="brand" href="/" aria-label="shkillers.ru">
+          <span class="brand-mark" aria-hidden="true">
+            {Array.from({ length: 24 }).map((_, index) => (
+              <span class:list={{ hot: [5, 10, 14].includes(index) }} />
+            ))}
+          </span>
+          <span class="brand-name">shkillers.ru</span>
+        </a>
+
+        <nav class="main-nav" aria-label="Главная навигация">
+          <a class:list={{ active: activePath === "home" }} href="/">главная</a>
+          <a class:list={{ active: activePath === "blog" }} href="/blog/">блог</a>
+        </nav>
+
+        <button class="mobile-menu" type="button" aria-label="Открыть меню">≡</button>
+      </div>
+    </header>
+
+    <slot />
+
+    <footer class="site-footer">
+      <div class="shell footer-grid">
+        <strong>shkillers.ru / 2026</strong>
+        <span>все права не защищены</span>
+        <nav aria-label="Ссылки в футере">
+          <a href="https://github.com/tilereasy/shkillers.ru" rel="noreferrer">github</a>
+          <a href="#">↑</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
