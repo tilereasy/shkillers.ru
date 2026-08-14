@@ -1,12 +1,9 @@
 name: Check blog validity
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+pull_request:
+push:
+  branches:
+    - master
 
 jobs:
   build:
