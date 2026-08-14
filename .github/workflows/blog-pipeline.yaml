@@ -1,0 +1,28 @@
+name: Check blog validity
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      
+      - name: Setup Node
+        uses: actions/setup-node@v7
+
+      - name: npm ci
+        working-directory: ./shkillers-site
+        run: npm ci
+      
+      - name: Build website
+        working-directory: ./shkillers-site
+        run: npm run build
