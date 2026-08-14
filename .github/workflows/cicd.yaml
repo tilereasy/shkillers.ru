@@ -77,11 +77,16 @@ jobs:
                     ansible_host: ${{ secrets.DEPLOY_HOST }}
                     ansible_user: ${{ secrets.DEPLOY_USER }}
           EOF
+      
+      - name: Create vault password file
+        run: |
+          printf '%s' '${{ secrets.ANSIBLE_VAULT_PASSWORD }}' > .vault-pass
+          chmod 600 .vault-pass
 
       - name: Deploy website
         working-directory: ./shkillers-infra
         run: |
           ansible-playbook \
-            -i inventory/production.yml \
-            playbooks/provision.yml \
-            --tags nginx
+          -i inventory/production.yml \
+          playbooks/deploy-site.yml \
+          --vault-password-file ../.vault-pass
